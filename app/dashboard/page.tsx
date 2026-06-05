@@ -9,6 +9,7 @@ interface User {
   name: string;
   email: string;
   photo: string;
+  bio?: string; // Menambahkan opsi bio di interface
 }
 
 function ProfileContent() {
@@ -18,9 +19,11 @@ function ProfileContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State untuk kontrol edit profile (di dalam satu card)
+  // State untuk kontrol edit profile
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newBio, setNewBio] = useState('');
+  const [newPhoto, setNewPhoto] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -45,8 +48,11 @@ function ProfileContent() {
         });
         if (!response.ok) throw new Error('Unauthorized');
         const data = await response.json();
+        
         setUser(data.user);
         setNewName(data.user.name);
+        setNewPhoto(data.user.photo);
+        setNewBio(data.user.bio || 'halo aku marcel'); // Default bio sesuai screenshot kamu
       } catch (err) {
         localStorage.removeItem('token');
         setError('Anda belum login');
@@ -64,17 +70,22 @@ function ProfileContent() {
     router.push('/login');
   };
 
-  // Fungsi simpan perubahan ke state layar
+  // Fungsi simpan perubahan ke layar langsung
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     
     setTimeout(() => {
       if (user) {
-        setUser({ ...user, name: newName });
+        setUser({ 
+          ...user, 
+          name: newName, 
+          photo: newPhoto,
+          bio: newBio 
+        });
       }
       setIsSaving(false);
-      setIsEditing(false); // Keluar dari mode edit setelah sukses
+      setIsEditing(false);
       alert('Profil berhasil diperbarui!');
     }, 600);
   };
@@ -105,7 +116,7 @@ function ProfileContent() {
     <div className="min-h-screen bg-[#E8F1F5] py-12 px-4 flex items-center justify-center">
       <div className="w-full max-w-md">
         
-        {/* Header Profile & Logout (Mirip Versi Awal) */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-extrabold text-[#4A76A8] tracking-tight">Profile</h1>
           <button
@@ -116,28 +127,33 @@ function ProfileContent() {
           </button>
         </div>
 
-        {/* Card Utama Tunggal (Satu Kotak di Tengah) */}
+        {/* Card Utama */}
         <div className="bg-white rounded-2xl shadow-xl shadow-[#A2C2E8]/20 p-8 border border-white">
           
-          {/* Foto Profil */}
-          <div className="relative w-24 h-24 mx-auto mb-5 border-4 border-white shadow-md rounded-full">
+          {/* Foto Profil (Akan dinamis berubah jika di-input baru) */}
+          <div className="relative w-24 h-24 mx-auto mb-5 border-4 border-white shadow-md rounded-full overflow-hidden">
             <Image
-              src={user.photo}
+              src={user.photo || '/default-avatar.png'}
               alt={user.name}
               fill
-              className="rounded-full object-cover"
+              className="object-cover"
+              unoptimized // Menghindari isu konfigurasi domain image Next.js jika input URL eksternal
             />
           </div>
 
-          {/* Kondisi Switch: Jika TIDAK sedang mengedit, tampilkan informasi profile biasa */}
           {!isEditing ? (
+            /* MODE PREVIEW */
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-1">{user.name}</h2>
-              <p className="text-gray-500 text-sm mb-6">{user.email}</p>
+              <p className="text-gray-500 text-sm mb-4">{user.email}</p>
+              
+              {/* Tampilan Bio */}
+              <p className="text-sm text-gray-600 bg-gray-50/70 py-2 px-3 rounded-xl italic border border-gray-100 max-w-xs mx-auto mb-5">
+                "{user.bio || newBio}"
+              </p>
               
               <div className="border-t border-gray-100 my-5"></div>
               
-              {/* Detail Info */}
               <div className="space-y-3.5 text-left mb-6 text-sm">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500 font-medium">Status:</span>
@@ -153,7 +169,6 @@ function ProfileContent() {
                 </div>
               </div>
 
-              {/* Tombol pemicu masuk ke mode edit */}
               <button 
                 onClick={() => setIsEditing(true)}
                 className="w-full bg-[#4A76A8] hover:bg-[#A2C2E8] text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-md shadow-[#4A76A8]/20 cursor-pointer active:scale-[0.98]"
@@ -162,32 +177,58 @@ function ProfileContent() {
               </button>
             </div>
           ) : (
-            /* Kondisi Switch: Jika SEDANG mengedit, ubah area bawah menjadi Form Input */
+            /* MODE EDIT FORM */
             <form onSubmit={handleUpdateProfile} className="space-y-4 pt-2">
               <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-[#4A76A8]">Edit Nama Akun</h3>
-                <p className="text-xs text-gray-400">Silakan ubah nama tampilan kamu di bawah ini</p>
+                <h3 className="text-lg font-bold text-[#4A76A8]">Ubah Info Profil</h3>
+                <p className="text-xs text-gray-400">Perbarui data profil akun kamu</p>
               </div>
 
+              {/* Input Nama */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nama Lengkap</label>
                 <input 
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-medium text-gray-700 bg-gray-50/50"
-                  placeholder="Masukkan nama baru"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-medium text-gray-700 bg-gray-50/50 text-sm"
                   required
                 />
               </div>
 
-              {/* Aksi Tombol di Mode Edit */}
-              <div className="flex gap-3 pt-3">
+              {/* Input URL Foto Profil */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">URL Foto Profil</label>
+                <input 
+                  type="text"
+                  value={newPhoto}
+                  onChange={(e) => setNewPhoto(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-mono text-xs text-gray-600 bg-gray-50/50"
+                  placeholder="Masukkan URL Gambar baru"
+                  required
+                />
+              </div>
+
+              {/* Input Bio */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Bio / Deskripsi</label>
+                <textarea 
+                  value={newBio}
+                  onChange={(e) => setNewBio(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-medium text-gray-700 bg-gray-50/50 h-20 resize-none text-sm"
+                  placeholder="Tulis bio singkat kamu..."
+                />
+              </div>
+
+              {/* Aksi Tombol */}
+              <div className="flex gap-3 pt-2">
                 <button 
                   type="button"
                   onClick={() => {
                     setIsEditing(false);
-                    setNewName(user.name); // Reset input ke nama asli jika batal
+                    setNewName(user.name);
+                    setNewBio(user.bio || 'halo aku marcel');
+                    setNewPhoto(user.photo);
                   }}
                   className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-xl transition-all text-sm cursor-pointer"
                 >
