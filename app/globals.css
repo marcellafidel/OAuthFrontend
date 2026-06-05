@@ -1,22 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #E8F1F5; /* Set default background jadi Baby Blue Terang */
   --foreground: #171717;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  
+  /* Tambahkan warna Baby Blue kustom ala Tailwind v4 */
+  --color-baby-light: #E8F1F5;
+  --color-baby-main: #A2C2E8;
+  --color-baby-dark: #4A76A8;
 }
 
 body {

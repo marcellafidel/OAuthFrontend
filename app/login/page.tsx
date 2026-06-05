@@ -13,47 +13,69 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Auth App</h1>
-          <p className="text-gray-600">Masuk dengan akun Google kamu</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#E8F1F5] p-6 relative overflow-hidden">
+      {/* Dekorasi Estetik Latar Belakang (Blob Lingkaran Halus) */}
+      <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#A2C2E8] rounded-full mix-blend-multiply filter blur-xl opacity-40 animate-pulse"></div>
+      <div className="absolute -bottom-10 -right-10 w-52 h-52 bg-[#4A76A8] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-700"></div>
+
+      {/* Card Utama */}
+      <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl shadow-[#A2C2E8]/40 p-10 w-full max-w-md border border-white/60 transform transition-all hover:scale-[1.01]">
+        
+        {/* Header App */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#E8F1F5] text-[#4A76A8] font-bold text-2xl mb-4 shadow-inner shadow-[#A2C2E8]/30">
+            A
+          </div>
+          <h1 className="text-3xl font-extrabold text-[#4A76A8] tracking-tight">
+            Welcome <span className="text-[#A2C2E8]">Back</span>
+          </h1>
+          <p className="text-gray-500 text-sm mt-2">
+            Silakan masuk untuk mengakses dashboard OAuth kamu.
+          </p>
         </div>
 
+        {/* Tombol Login Google */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full bg-white border border-gray-200 text-gray-700 py-3.5 px-4 rounded-xl font-semibold hover:bg-[#E8F1F5] hover:border-[#A2C2E8] hover:text-[#4A76A8] transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-3 shadow-md shadow-gray-100/50 cursor-pointer active:scale-[0.98]"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="currentColor"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="currentColor"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="currentColor"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
-          {loading ? 'Loading...' : 'Login dengan Google'}
+          {loading ? (
+            // Spinner Animasi Cantik
+            <svg className="animate-spin h-5 w-5 text-[#4A76A8]" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          ) : (
+            // Icon Google
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.46 0 4.105 1.025 5.047 1.926l3.227-3.227C18.216 1.414 15.48 0 12.24 0 5.58 0 0 5.373 0 12s5.58 12 12.24 12c6.96 0 11.57-4.855 11.57-11.76 0-.79-.085-1.39-.19-1.955H12.24z"
+              />
+            </svg>
+          )}
+          <span className="tracking-wide">
+            {loading ? 'Menghubungkan...' : 'Masuk dengan Google'}
+          </span>
         </button>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-center text-gray-600 text-sm">
+        {/* Footer Link */}
+        <div className="mt-10 pt-6 border-t border-gray-100 flex flex-col items-center gap-1">
+          <p className="text-gray-400 text-xs">
+            Aplikasi Keamanan Terenkripsi OAuth 2.0
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
             Belum punya akun?{' '}
-            <Link href="/signup" className="text-indigo-600 hover:text-indigo-700 font-semibold">
+            <Link 
+              href="/signup" 
+              className="text-[#4A76A8] hover:text-[#A2C2E8] font-bold transition-colors duration-200 underline underline-offset-4"
+            >
               Daftar di sini
             </Link>
           </p>
         </div>
+
       </div>
     </div>
   );
