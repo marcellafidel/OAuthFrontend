@@ -18,9 +18,9 @@ function ProfileContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State untuk menangani input Form Edit Profile
+  // State untuk kontrol edit profile (di dalam satu card)
+  const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newBio, setNewBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -46,11 +46,7 @@ function ProfileContent() {
         if (!response.ok) throw new Error('Unauthorized');
         const data = await response.json();
         setUser(data.user);
-        
-        // Isi form dengan nama user saat ini dari backend
-        if (data.user && data.user.name) {
-          setNewName(data.user.name);
-        }
+        setNewName(data.user.name);
       } catch (err) {
         localStorage.removeItem('token');
         setError('Anda belum login');
@@ -68,7 +64,7 @@ function ProfileContent() {
     router.push('/login');
   };
 
-  // Logika Aksi Simpan Perubahan Profil ke State Lokal
+  // Fungsi simpan perubahan ke state layar
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -78,8 +74,9 @@ function ProfileContent() {
         setUser({ ...user, name: newName });
       }
       setIsSaving(false);
-      alert('Profil berhasil diperbarui di layar!');
-    }, 500);
+      setIsEditing(false); // Keluar dari mode edit setelah sukses
+      alert('Profil berhasil diperbarui!');
+    }, 600);
   };
 
   if (loading) {
@@ -87,7 +84,7 @@ function ProfileContent() {
       <div className="min-h-screen flex items-center justify-center bg-[#E8F1F5]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-[#4A76A8] mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">Memuat dashboard...</p>
+          <p className="text-gray-500 font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -98,123 +95,128 @@ function ProfileContent() {
       <div className="min-h-screen flex items-center justify-center bg-[#E8F1F5]">
         <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center border border-white">
           <p className="text-red-500 font-semibold mb-2">{error}</p>
-          <p className="text-gray-400 text-sm">Mengalihkan kembali... </p>
+          <p className="text-gray-400 text-sm">Redirecting to login...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#E8F1F5] text-gray-800 antialiased">
-      
-      {/* NAVBAR */}
-      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-[#A2C2E8]/20 px-6 py-4 flex justify-between items-center shadow-sm">
-        <div className="text-xl font-extrabold text-[#4A76A8] tracking-tight">
-          OAuth <span className="text-[#A2C2E8]">Dashboard</span>
-        </div>
-        <button 
-          onClick={handleLogout}
-          className="px-4 py-1.5 border border-red-300 text-red-500 hover:bg-red-50 hover:text-white rounded-xl font-semibold transition-all duration-300 text-sm cursor-pointer active:scale-95 shadow-sm"
-        >
-          Logout
-        </button>
-      </header>
-
-      {/* GRIDS UTAMA */}
-      <main className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className="min-h-screen bg-[#E8F1F5] py-12 px-4 flex items-center justify-center">
+      <div className="w-full max-w-md">
         
-        {/* KOLOM KIRI: INFO PROFIL */}
-        <div className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl shadow-[#A2C2E8]/20 border border-white text-center h-fit transform transition-all hover:scale-[1.01]">
-          <div className="relative w-24 h-24 mx-auto mb-5 shadow-lg rounded-full border-4 border-white">
+        {/* Header Profile & Logout (Mirip Versi Awal) */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-extrabold text-[#4A76A8] tracking-tight">Profile</h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-xl transition text-sm shadow-md shadow-red-500/10 cursor-pointer active:scale-95"
+          >
+            Logout
+          </button>
+        </div>
+
+        {/* Card Utama Tunggal (Satu Kotak di Tengah) */}
+        <div className="bg-white rounded-2xl shadow-xl shadow-[#A2C2E8]/20 p-8 border border-white">
+          
+          {/* Foto Profil */}
+          <div className="relative w-24 h-24 mx-auto mb-5 border-4 border-white shadow-md rounded-full">
             <Image
-              src={user.photo || '/default-avatar.png'}
+              src={user.photo}
               alt={user.name}
               fill
               className="rounded-full object-cover"
             />
           </div>
-          <h2 className="text-xl font-bold text-[#4A76A8] tracking-tight">{user.name}</h2>
-          <p className="text-sm text-gray-400 mt-1 font-medium mb-4">{user.email}</p>
-          
-          <div className="border-t border-gray-100 my-4"></div>
-          
-          <div className="space-y-3 text-sm text-left">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500 font-medium">Status:</span>
-              <span className="px-2 py-0.5 bg-green-50 text-green-600 font-bold text-xs rounded-md">✓ Verified</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500 font-medium">Metode:</span>
-              <span className="font-semibold text-[#4A76A8] text-xs">Google OAuth</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500 font-medium">User ID:</span>
-              <span className="font-mono text-gray-400 text-xs bg-gray-50 p-1 rounded">
-                {user.id ? user.id.slice(0, 10) : '...'}...
-              </span>
-            </div>
-          </div>
 
-          {newBio && (
-            <div className="mt-5 pt-4 border-t border-gray-100 text-left">
-              <span className="text-[10px] font-bold text-[#A2C2E8] uppercase tracking-wider block mb-1">Bio Aktif</span>
-              <p className="text-xs text-gray-500 italic">"{newBio}"</p>
-            </div>
-          )}
-        </div>
+          {/* Kondisi Switch: Jika TIDAK sedang mengedit, tampilkan informasi profile biasa */}
+          {!isEditing ? (
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">{user.name}</h2>
+              <p className="text-gray-500 text-sm mb-6">{user.email}</p>
+              
+              <div className="border-t border-gray-100 my-5"></div>
+              
+              {/* Detail Info */}
+              <div className="space-y-3.5 text-left mb-6 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 font-medium">Status:</span>
+                  <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md text-xs">✓ Verified</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 font-medium">Login Method:</span>
+                  <span className="font-semibold text-[#4A76A8] text-xs">Google OAuth</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 font-medium">User ID:</span>
+                  <span className="font-mono text-gray-400 text-xs bg-gray-50 px-2 py-0.5 rounded">{user.id.slice(0, 10)}...</span>
+                </div>
+              </div>
 
-        {/* KOLOM KANAN: FORM UPDATE PROFIL */}
-        <div className="md:col-span-2 bg-white/95 backdrop-blur-sm p-8 rounded-2xl shadow-xl shadow-[#A2C2E8]/20 border border-white">
-          <div className="mb-6">
-            <h3 className="text-2xl font-extrabold text-[#4A76A8] tracking-tight">Edit Profile</h3>
-            <p className="text-sm text-gray-400 mt-1">Ubah nama tampilan atau deskripsi akun kamu di sini.</p>
-          </div>
-          
-          <hr className="border-gray-100 mb-6" />
-
-          <form onSubmit={handleUpdateProfile} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-2">Nama Lengkap</label>
-              <input 
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/20 transition-all font-medium text-gray-700 bg-gray-50/50"
-                placeholder="Perbarui nama akun kamu"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-600 mb-2">Bio / Deskripsi Singkat</label>
-              <textarea 
-                value={newBio}
-                onChange={(e) => setNewBio(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/20 transition-all h-28 resize-none font-medium text-gray-700 bg-gray-50/50"
-                placeholder="Tulis status atau bio singkat..."
-              />
-            </div>
-
-            <div className="pt-2 flex justify-end">
+              {/* Tombol pemicu masuk ke mode edit */}
               <button 
-                type="submit"
-                disabled={isSaving}
-                className="px-6 py-3 bg-[#A2C2E8] hover:bg-[#4A76A8] text-white font-bold rounded-xl transition-all duration-300 shadow-md shadow-[#A2C2E8]/30 cursor-pointer active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                onClick={() => setIsEditing(true)}
+                className="w-full bg-[#4A76A8] hover:bg-[#A2C2E8] text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-md shadow-[#4A76A8]/20 cursor-pointer active:scale-[0.98]"
               >
-                {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                Edit Profile
               </button>
             </div>
-          </form>
+          ) : (
+            /* Kondisi Switch: Jika SEDANG mengedit, ubah area bawah menjadi Form Input */
+            <form onSubmit={handleUpdateProfile} className="space-y-4 pt-2">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-bold text-[#4A76A8]">Edit Nama Akun</h3>
+                <p className="text-xs text-gray-400">Silakan ubah nama tampilan kamu di bawah ini</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nama Lengkap</label>
+                <input 
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-medium text-gray-700 bg-gray-50/50"
+                  placeholder="Masukkan nama baru"
+                  required
+                />
+              </div>
+
+              {/* Aksi Tombol di Mode Edit */}
+              <div className="flex gap-3 pt-3">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setNewName(user.name); // Reset input ke nama asli jika batal
+                  }}
+                  className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-xl transition-all text-sm cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSaving}
+                  className="w-1/2 bg-[#4A76A8] hover:bg-[#A2C2E8] text-white font-semibold py-2.5 px-4 rounded-xl transition-all text-sm shadow-md shadow-[#4A76A8]/10 cursor-pointer disabled:opacity-50"
+                >
+                  {isSaving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          )}
+
         </div>
 
-      </main>
+        <div className="text-center mt-6 text-gray-400 text-sm">
+          <p>Selamat datang! 👋</p>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<div className="p-6">Loading...</div>}>
+    <Suspense fallback={<div className="p-4 text-center text-gray-500">Loading session...</div>}>
       <ProfileContent />
     </Suspense>
   );
