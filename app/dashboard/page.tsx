@@ -10,8 +10,8 @@ interface User {
   email: string;
   photo: string;
   bio?: string;
-  uploadedDocName?: string; // Menyimpan nama dokumen/PDF yang diunggah
-  uploadedDocType?: string; // Menyimpan tipe format dokumen
+  uploadedDocName?: string;
+  uploadedDocType?: string;
 }
 
 function ProfileContent() {
@@ -21,18 +21,19 @@ function ProfileContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State kontrol edit profile
+  // State kontrol khusus edit profile (Nama & Bio saja)
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState('');
   const [newBio, setNewBio] = useState('');
-  const [newPhotoPreview, setNewPhotoPreview] = useState('');
-  
-  // State khusus untuk menampung data dokumen/PDF baru
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // State kontrol khusus upload file/dokumen (Terpisah)
   const [docName, setDocName] = useState('');
   const [docType, setDocType] = useState('');
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   
-  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -60,7 +61,6 @@ function ProfileContent() {
         setUser(data.user);
         setNewName(data.user.name);
         setNewBio(data.user.bio || 'halo aku marcel'); 
-        setNewPhotoPreview(data.user.photo);
         setDocName(data.user.uploadedDocName || '');
         setDocType(data.user.uploadedDocType || '');
       } catch (err) {
@@ -75,16 +75,11 @@ function ProfileContent() {
     fetchUser();
   }, [router, searchParams]);
 
+  // Sinkronisasi data profile saat masuk mode edit
   useEffect(() => {
     if (isEditing && user) {
       setNewName(user.name);
       setNewBio(user.bio || 'halo aku marcel');
-      setNewPhotoPreview(user.photo);
-      setDocName(user.uploadedDocName || '');
-      setDocType(user.uploadedDocType || '');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   }, [isEditing, user]);
 
@@ -93,58 +88,72 @@ function ProfileContent() {
     router.push('/login');
   };
 
-  // Handler serbaguna untuk Foto, PDF, atau Doc
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 1. Fungsi khusus ganti Foto Profil dari lokal komputer
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validasi ukuran maksimal (misal 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Ukuran file terlalu besar! Maksimal 5MB.');
+      if (!file.type.startsWith('image/')) {
+        alert('File harus berupa gambar!');
         return;
       }
-
-      // 1. Jika yang diunggah adalah Gambar / Foto
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setNewPhotoPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      } 
-      // 2. Jika yang diunggah adalah PDF atau Dokumen teks
-      else {
-        setDocName(file.name);
-        setDocType(file.type || 'application/octet-stream');
-      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (user) {
+          setUser({ ...user, photo: reader.result as string });
+          alert('Foto profil berhasil diubah!');
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
+  // 2. Fungsi khusus simpan perubahan info Nama & Bio
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    setIsSavingProfile(true);
     
     setTimeout(() => {
       if (user) {
-        setUser({ 
-          ...user, 
-          name: newName, 
-          bio: newBio,
-          photo: newPhotoPreview,
-          uploadedDocName: docName,
-          uploadedDocType: docType
-        });
+        setUser({ ...user, name: newName, bio: newBio });
       }
-      setIsSaving(false);
+      setIsSavingProfile(false);
       setIsEditing(false);
-      alert('Profil & Dokumen berhasil diperbarui!');
-    }, 600);
+      alert('Profil berhasil diperbarui!');
+    }, 500);
   };
 
-  // Fungsi helper untuk menentukan ikon dokumen
+  // 3. Fungsi khusus Upload Berkas/Dokumen (Bagian Terpisah)
+  const handleDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran file maksimal 5MB!');
+        return;
+      }
+      
+      setIsUploadingDoc(true);
+      
+      setTimeout(() => {
+        setDocName(file.name);
+        setDocType(file.type || 'application/octet-stream');
+        if (user) {
+          setUser({
+            ...user,
+            uploadedDocName: file.name,
+            uploadedDocType: file.type || 'application/octet-stream'
+          });
+        }
+        setIsUploadingDoc(false);
+        alert('Berkas berhasil diunggah ke dashboard!');
+      }, 700);
+    }
+  };
+
   const getDocIcon = (type: string) => {
     if (type.includes('pdf')) return '📕 PDF';
     if (type.includes('word') || type.includes('officedocument')) return '📘 DOCX';
-    return '📁 File';
+    if (type.startsWith('image/')) return '🖼️ IMAGE';
+    return '📁 FILE';
   };
 
   if (loading) {
@@ -171,10 +180,10 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen bg-[#E8F1F5] py-12 px-4 flex items-center justify-center antialiased">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-5">
         
         {/* Header Atas */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center">
           <h1 className="text-2xl font-extrabold text-[#4A76A8] tracking-tight">Profile</h1>
           <button
             onClick={handleLogout}
@@ -184,132 +193,106 @@ function ProfileContent() {
           </button>
         </div>
 
-        {/* Card Utama */}
+        {/* ================= SEKSI 1: KOTAK UTAMA PROFILE ================= */}
         <div className="bg-white rounded-2xl shadow-xl shadow-[#A2C2E8]/20 p-8 border border-white">
           
-          {/* Foto Profil */}
-          <div className="relative w-24 h-24 mx-auto mb-5 border-4 border-white shadow-md rounded-full overflow-hidden bg-gray-100">
+          {/* Avatar Area dengan hover click untuk ganti foto langsung */}
+          <div 
+            onClick={() => profilePhotoInputRef.current?.click()}
+            className="relative w-24 h-24 mx-auto mb-5 border-4 border-white shadow-md rounded-full overflow-hidden bg-gray-100 cursor-pointer group"
+            title="Klik untuk ganti foto profil"
+          >
             <Image
-              src={isEditing ? newPhotoPreview : (user.photo || '/default-avatar.png')}
+              src={user.photo || '/default-avatar.png'}
               alt={user.name || 'User'}
               fill
-              className="object-cover"
+              className="object-cover group-hover:scale-105 transition-all"
               unoptimized
             />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-[10px] text-white font-bold">Ubah Foto</span>
+            </div>
           </div>
+          {/* Hidden input file untuk foto */}
+          <input 
+            type="file" 
+            ref={profilePhotoInputRef} 
+            onChange={handlePhotoChange} 
+            accept="image/*" 
+            className="hidden" 
+          />
 
           {!isEditing ? (
-            /* MODE PREVIEW */
+            /* TAMPILAN PREVIEW PROFILE BIASA */
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-1">{user.name}</h2>
               <p className="text-gray-500 text-sm mb-4">{user.email}</p>
               
-              {/* Box Bio */}
               <div className="bg-gray-50/80 border border-gray-100 text-sm text-gray-600 py-2.5 px-4 rounded-xl italic max-w-xs mx-auto mb-5 shadow-inner">
                 "{user.bio || 'halo aku marcel'}"
               </div>
-
-              {/* Tampilan Lampiran Dokumen Jika Ada */}
-              {user.uploadedDocName && (
-                <div className="mb-5 p-3 bg-blue-50/50 border border-blue-100 text-left rounded-xl flex items-center gap-3">
-                  <span className="text-lg bg-white p-2 rounded-lg shadow-sm border border-blue-50">
-                    {getDocIcon(user.uploadedDocType || '')}
-                  </span>
-                  <div className="overflow-hidden">
-                    <p className="text-xs text-gray-400 font-medium">Dokumen Terunggah</p>
-                    <p className="text-xs font-semibold text-gray-700 truncate">{user.uploadedDocName}</p>
-                  </div>
-                </div>
-              )}
               
               <div className="border-t border-gray-100 my-5"></div>
               
-              {/* Detail Metadata */}
-              <div className="space-y-3.5 text-left mb-6 text-sm">
+              <div className="space-y-3 text-left mb-6 text-xs text-gray-500 font-medium">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 font-medium">Status:</span>
-                  <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md text-xs">✓ Verified</span>
+                  <span>Status Account:</span>
+                  <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md">✓ Verified</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 font-medium">Login Method:</span>
-                  <span className="font-semibold text-[#4A76A8] text-xs">Google OAuth</span>
+                  <span>Metode Otentikasi:</span>
+                  <span className="font-bold text-[#4A76A8]">Google OAuth</span>
                 </div>
               </div>
 
-              {/* Tombol Edit */}
               <button 
                 onClick={() => setIsEditing(true)}
-                className="w-full bg-[#4A76A8] hover:bg-[#A2C2E8] text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-md shadow-[#4A76A8]/20 cursor-pointer active:scale-[0.98]"
+                className="w-full bg-[#4A76A8] hover:bg-[#A2C2E8] text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-md shadow-[#4A76A8]/20 cursor-pointer"
               >
-                Edit Profile & Berkas
+                Edit Profile
               </button>
             </div>
           ) : (
-            /* MODE EDIT FORM MULTI-UPLOAD */
+            /* FORM EDIT PROFILE (NAMA & BIO SAJA) */
             <form onSubmit={handleUpdateProfile} className="space-y-4 pt-2">
               <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-[#4A76A8]">Ubah Profil & Berkas</h3>
-                <p className="text-xs text-gray-400">Unggah foto baru atau berkas PDF/Doc Anda</p>
+                <h3 className="text-lg font-bold text-[#4A76A8]">Ubah Informasi</h3>
               </div>
 
-              {/* Input Upload Serbaguna */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Unggah Foto / PDF / Doc</label>
-                <input 
-                  type="file"
-                  accept="image/*, application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  onChange={handleFileChange}
-                  ref={fileInputRef}
-                  className="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer"
-                />
-                
-                {/* Preview Status Sementara saat Edit */}
-                {docName && (
-                  <div className="mt-2 text-[11px] text-gray-500 flex items-center gap-1 bg-gray-50 p-1.5 rounded-lg border border-dashed">
-                    <span>Selected File:</span>
-                    <span className="font-semibold text-gray-700 truncate max-w-[200px]">{docName}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Input Nama */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 pt-1">Nama Lengkap</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nama Lengkap</label>
                 <input 
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-medium text-gray-700 bg-gray-50/50 text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-medium text-gray-700 text-sm"
                   required
                 />
               </div>
 
-              {/* Input Bio */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 pt-1">Bio / Deskripsi Singkat</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Bio / Deskripsi</label>
                 <textarea 
                   value={newBio}
                   onChange={(e) => setNewBio(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-medium text-gray-700 bg-gray-50/50 h-20 resize-none text-sm"
-                  placeholder="Tulis bio singkat kamu..."
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-[#A2C2E8] focus:ring-4 focus:ring-[#A2C2E8]/10 transition-all font-medium text-gray-700 h-20 resize-none text-sm"
                 />
               </div>
 
-              {/* Aksi Batal / Simpan */}
-              <div className="flex gap-3 pt-3">
+              <div className="flex gap-3 pt-2">
                 <button 
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-xl transition-all text-sm cursor-pointer"
+                  className="w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-2.5 px-4 rounded-xl transition-all text-sm"
                 >
                   Batal
                 </button>
                 <button 
                   type="submit"
-                  disabled={isSaving}
-                  className="w-1/2 bg-[#4A76A8] hover:bg-[#A2C2E8] text-white font-semibold py-2.5 px-4 rounded-xl transition-all text-sm shadow-md shadow-[#4A76A8]/10 cursor-pointer disabled:opacity-50"
+                  disabled={isSavingProfile}
+                  className="w-1/2 bg-[#4A76A8] hover:bg-[#A2C2E8] text-white font-semibold py-2.5 px-4 rounded-xl transition-all text-sm shadow-md"
                 >
-                  {isSaving ? 'Menyimpan...' : 'Simpan'}
+                  {isSavingProfile ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
             </form>
@@ -317,8 +300,54 @@ function ProfileContent() {
 
         </div>
 
-        <div className="text-center mt-6 text-gray-400 text-sm">
-          <p>Selamat datang! 👋</p>
+        {/* ================= SEKSI 2: KOTAK BAGIAN BERBEDA (UPLOAD FILE / DOC) ================= */}
+        <div className="bg-white rounded-2xl shadow-xl shadow-[#A2C2E8]/20 p-6 border border-white">
+          <h3 className="text-sm font-bold text-gray-800 mb-3 tracking-wide uppercase">📁 Pusat Berkas & Dokumen</h3>
+          
+          {/* Komponen Unggah File */}
+          <div className="space-y-4">
+            <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-2xl p-4 bg-gray-50/50 hover:bg-gray-50 transition-colors group relative">
+              <input 
+                type="file"
+                accept="image/*, application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={handleDocUpload}
+                ref={fileInputRef}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={isUploadingDoc}
+              />
+              <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">📤</span>
+              <p className="text-xs font-semibold text-gray-600">
+                {isUploadingDoc ? 'Sedang Memproses Berkas...' : 'Pilih Foto, PDF, atau berkas DOC'}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Maksimal ukuran file 5MB</p>
+            </div>
+
+            {/* List Gambar/Dokumen yang Terunggah */}
+            {docName && (
+              <div className="p-3 bg-blue-50/40 border border-blue-100 rounded-xl flex items-center justify-between animate-fade-in">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <span className="text-base bg-white p-2 rounded-lg shadow-sm border border-blue-50/60 font-bold shrink-0">
+                    {getDocIcon(docType)}
+                  </span>
+                  <div className="overflow-hidden">
+                    <p className="text-[10px] text-gray-400 font-medium">File Aktif Terlampir</p>
+                    <p className="text-xs font-bold text-gray-700 truncate max-w-[220px]">{docName}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { setDocName(''); setDocType(''); }}
+                  className="text-gray-400 hover:text-red-500 font-bold text-xs p-1 px-2 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Hapus berkas"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="text-center mt-2 text-gray-400 text-xs">
+          <p>Terhubung dengan Dashboard OAuth v4.2 👋</p>
         </div>
       </div>
     </div>
